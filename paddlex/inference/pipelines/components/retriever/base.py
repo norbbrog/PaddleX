@@ -13,23 +13,15 @@
 # limitations under the License.
 import base64
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List
 
 from paddlex.utils import logging
-
-from .....utils.deps import class_requires_deps, is_dep_available
+from .....utils.deps import class_requires_deps
 from .....utils.subclass_register import AutoRegisterABCMetaClass
 
-if is_dep_available("langchain"):
-    from langchain_core.documents import Document
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-if is_dep_available("langchain-community"):
-    from langchain_community import vectorstores
-    from langchain_community.vectorstores import FAISS
 
-
-@class_requires_deps("langchain", "langchain-community")
+@class_requires_deps("langchain", "langchain_text_splitters", "langchain-community")
 class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
     """Base Retriever"""
 
@@ -43,25 +35,15 @@ class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
         self.model_name = None
         self.embedding = None
 
-    @abstractmethod
-    def generate_vector_database(self):
-        """
-        Declaration of an abstract method. Subclasses are expected to
-        provide a concrete implementation of generate_vector_database.
-        """
-        raise NotImplementedError(
-            "The method `generate_vector_database` has not been implemented yet."
-        )
+        from langchain_core.documents import Document
+        self.langchain_document_cls = Document
 
-    @abstractmethod
-    def similarity_retrieval(self):
-        """
-        Declaration of an abstract method. Subclasses are expected to
-        provide a concrete implementation of similarity_retrieval.
-        """
-        raise NotImplementedError(
-            "The method `similarity_retrieval` has not been implemented yet."
-        )
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        self.langchain_text_splitter_cls = RecursiveCharacterTextSplitter
+
+        from langchain_community import vectorstores
+        self.langchain_community_vectorstores_cls = vectorstores
+        self.langchain_community_faiss_cls = vectorstores.FAISS
 
     def get_model_name(self) -> str:
         """
@@ -130,14 +112,14 @@ class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
         Raises:
             ValueError: If an unsupported API type is configured.
         """
-        text_splitter = RecursiveCharacterTextSplitter(
+        text_splitter = self.langchain_text_splitter_cls(
             chunk_size=block_size, chunk_overlap=20, separators=separators
         )
         texts = text_splitter.split_text("\t".join(text_list))
-        all_splits = [Document(page_content=text) for text in texts]
+        all_splits = [self.langchain_document_cls(page_content=text) for text in texts]
 
         try:
-            vectorstore = FAISS.from_documents(
+            vectorstore = self.langchain_community_faiss_cls.from_documents(
                 documents=all_splits, embedding=self.embedding
             )
         except ValueError:
@@ -184,7 +166,7 @@ class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
             logging.warning("The retrieved vectorstore is empty,will empty vector.")
             return None
 
-        vector = vectorstores.FAISS.deserialize_from_bytes(
+        vector = self.langchain_community_vectorstores_cls.FAISS.deserialize_from_bytes(
             vectorstore,
             embeddings=self.embedding,
             allow_dangerous_deserialization=True,
