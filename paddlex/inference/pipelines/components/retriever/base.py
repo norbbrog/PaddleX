@@ -21,7 +21,7 @@ from .....utils.deps import class_requires_deps
 from .....utils.subclass_register import AutoRegisterABCMetaClass
 
 
-@class_requires_deps("langchain", "langchain_text_splitters", "langchain-community")
+@class_requires_deps("langchain", "langchain-text-splitters", "langchain-community")
 class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
     """Base Retriever"""
 
