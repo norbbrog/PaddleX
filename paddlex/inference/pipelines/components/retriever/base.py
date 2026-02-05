@@ -41,9 +41,8 @@ class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
         from langchain_text_splitters import RecursiveCharacterTextSplitter
         self.langchain_text_splitter_cls = RecursiveCharacterTextSplitter
 
-        from langchain_community import vectorstores
-        self.langchain_community_vectorstores_cls = vectorstores
-        self.langchain_community_faiss_cls = vectorstores.FAISS
+        from langchain_community.vectorstores import FAISS
+        self.langchain_community_faiss_cls = FAISS
 
     def get_model_name(self) -> str:
         """
@@ -166,7 +165,7 @@ class BaseRetriever(ABC, metaclass=AutoRegisterABCMetaClass):
             logging.warning("The retrieved vectorstore is empty,will empty vector.")
             return None
 
-        vector = self.langchain_community_vectorstores_cls.FAISS.deserialize_from_bytes(
+        vector = self.langchain_community_faiss_cls.deserialize_from_bytes(
             vectorstore,
             embeddings=self.embedding,
             allow_dangerous_deserialization=True,
